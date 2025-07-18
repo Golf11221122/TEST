@@ -1,0 +1,468 @@
+<!-- วางในไฟล์ .html ของคุณ -->
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>เมนูอาหาร</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: linear-gradient(to bottom right, #FFA500, #FFFFFF);
+      color: #002366;
+      margin: 0;
+      padding: 0;
+    }
+
+    header {
+      display: flex;
+      justify-content: space-between;
+      padding: 10px 20px;
+    }
+
+    .btn-nav {
+      padding: 8px 16px;
+      font-size: 1rem;
+      border: none;
+      border-radius: 12px;
+      background-color: #ffffffcc;
+      color: #002366;
+      cursor: pointer;
+    }
+
+    h1 {
+      text-align: center;
+      margin-top: 10px;
+    }
+
+    .container {
+      display: flex;
+      flex-direction: row;
+      padding: 10px;
+    }
+
+    .order-summary {
+      width: 30%;
+      background-color: #ffffffcc;
+      border-radius: 12px;
+      padding: 15px;
+      margin-right: 10px;
+      min-width: 280px;
+    }
+
+    .order-summary h3 {
+      margin-top: 0;
+      text-align: center;
+      color: #002366;
+    }
+
+    .order-item {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 10px;
+      align-items: center;
+    }
+
+    .order-item .controls button {
+      font-size: 0.75rem;
+      width: 22px;
+      height: 22px;
+      margin: 0 1px;
+      border: none;
+      border-radius: 6px;
+      background: #FFA500;
+      color: white;
+      cursor: pointer;
+    }
+
+    .order-item .controls span {
+      margin: 0 3px;
+      font-size: 0.85rem;
+    }
+
+    .summary-total {
+      margin-top: 15px;
+      font-weight: bold;
+    }
+
+    .menu-grid {
+      flex: 1;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+      gap: 15px;
+    }
+
+    .menu-item {
+      background: #fff;
+      border-radius: 12px;
+      text-align: center;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.2);
+      padding: 10px;
+      cursor: pointer;
+    }
+
+    .image-placeholder {
+      width: 100%;
+      height: 100px;
+      background: #eee;
+      border-radius: 12px;
+      margin-bottom: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #999;
+      font-size: 0.9rem;
+    }
+
+    .order-summary button {
+      width: 100%;
+      padding: 12px;
+      margin-top: 10px;
+      font-size: 1rem;
+      border: none;
+      border-radius: 12px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    .order-summary button:first-of-type {
+      background: linear-gradient(to right, #FFA500, #FFD580);
+      color: #002366;
+    }
+
+    .order-summary button:last-of-type {
+      background: linear-gradient(to right, #eee, #ccc);
+      color: #444;
+    }
+
+    .order-summary button:hover {
+      transform: scale(1.02);
+    }
+
+    .discount-popup, .auth-popup, .error-popup {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: white;
+      padding: 20px;
+      border-radius: 16px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+      z-index: 1000;
+      text-align: center;
+    }
+
+    .discount-options button, .auth-keypad button {
+      margin: 8px;
+      font-size: 1.2rem;
+      padding: 10px 18px;
+      border-radius: 12px;
+      border: none;
+      background: #FFD580;
+      cursor: pointer;
+    }
+
+    .overlay {
+      position: fixed;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      background: rgba(0,0,0,0.5);
+      z-index: 999;
+    }
+
+    /* Responsive Design */
+    @media (max-width: 600px) {
+      .container {
+        flex-direction: column;
+      }
+
+      .order-summary {
+        width: 100%;
+        margin-bottom: 10px;
+      }
+
+      .menu-grid {
+        grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+      }
+
+      .order-summary button {
+        font-size: 0.95rem;
+      }
+
+      .order-item .controls button {
+        width: 20px;
+        height: 20px;
+        font-size: 0.7rem;
+      }
+
+      .discount-popup, .auth-popup, .error-popup {
+        width: 90%;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="overlay" id="overlay" style="display:none" onclick="closeAllPopups()"></div>
+  <header>
+    <button class="btn-nav" onclick="goHome()">← Home</button>
+    <button class="btn-nav" onclick="goBack()">← Back</button>
+  </header>
+
+  <h1>เมนูอาหาร</h1>
+
+  <div class="container">
+    <div class="order-summary" id="orderSummary" style="display: none;">
+      <h3>รายการสั่งซื้อ</h3>
+      <div id="orderItems"></div>
+      <div class="summary-total" id="totalSummary"></div>
+      <button onclick="promptDiscountAuth()">🎁 ส่วนลด</button>
+      <button onclick="submitOrder()">✅ ยืนยันคำสั่งซื้อ</button>
+      <button onclick="cancelOrder()">❌ ยกเลิก</button>
+      <button onclick="removeDiscount()">🧹 ลบส่วนลด</button>
+    </div>
+
+    <div class="menu-grid" id="menuGrid">กำลังโหลดเมนู...</div>
+  </div>
+
+  <!-- ป๊อปอัปใส่รหัส -->
+  <div class="auth-popup" id="authPopup" style="display:none">
+    <h3>กรอกรหัสยืนยัน</h3>
+    <div id="pinDisplay" style="font-size: 1.5rem; margin: 10px 0;">______</div>
+    <div class="auth-keypad">
+      <div>
+        <button onclick="inputPin('1')">1</button>
+        <button onclick="inputPin('2')">2</button>
+        <button onclick="inputPin('3')">3</button>
+      </div>
+      <div>
+        <button onclick="inputPin('4')">4</button>
+        <button onclick="inputPin('5')">5</button>
+        <button onclick="inputPin('6')">6</button>
+      </div>
+      <div>
+        <button onclick="inputPin('7')">7</button>
+        <button onclick="inputPin('8')">8</button>
+        <button onclick="inputPin('9')">9</button>
+      </div>
+      <div>
+        <button onclick="clearPin()">ลบ</button>
+        <button onclick="inputPin('0')">0</button>
+        <button onclick="submitPin()">ตกลง</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ป๊อปอัปเลือกส่วนลด -->
+  <div class="discount-popup" id="discountPopup" style="display:none">
+    <h3>เลือกระดับส่วนลด</h3>
+    <div class="discount-options">
+      <button onclick="applyDiscount(5)">5%</button>
+      <button onclick="applyDiscount(10)">10%</button>
+      <button onclick="applyDiscount(15)">15%</button>
+      <button onclick="applyDiscount(20)">20%</button>
+    </div>
+  </div>
+
+  <!-- ป๊อปอัปแจ้งรหัสผิด -->
+  <div class="error-popup" id="errorPopup" style="display:none">
+    <h3 style="color:red">❌ รหัสยืนยันไม่ถูกต้อง</h3>
+    <p>กรุณาลองใหม่อีกครั้ง</p>
+  </div>
+
+  <script>
+    let order = {};
+    let discountPercent = 0;
+    let enteredPin = "";
+    let startTime = new Date();
+
+    function updateOverlay(show) {
+      document.getElementById("overlay").style.display = show ? "block" : "none";
+    }
+
+    function closeAllPopups() {
+      document.getElementById("authPopup").style.display = "none";
+      document.getElementById("discountPopup").style.display = "none";
+      document.getElementById("errorPopup").style.display = "none";
+      updateOverlay(false);
+    }
+
+    function promptDiscountAuth() {
+      enteredPin = "";
+      updateOverlay(true);
+      document.getElementById("authPopup").style.display = "block";
+      updatePinDisplay();
+    }
+
+    function inputPin(digit) {
+      if (enteredPin.length < 6) {
+        enteredPin += digit;
+        updatePinDisplay();
+      }
+    }
+
+    function updatePinDisplay() {
+      let display = enteredPin.padEnd(6, "_");
+      document.getElementById("pinDisplay").innerText = display;
+    }
+
+    function clearPin() {
+      enteredPin = "";
+      updatePinDisplay();
+    }
+
+    function submitPin() {
+      if (enteredPin === "000000") {
+        document.getElementById("authPopup").style.display = "none";
+        document.getElementById("discountPopup").style.display = "block";
+      } else {
+        document.getElementById("authPopup").style.display = "none";
+        document.getElementById("errorPopup").style.display = "block";
+        setTimeout(() => {
+          document.getElementById("errorPopup").style.display = "none";
+          promptDiscountAuth();
+        }, 1500);
+      }
+    }
+
+    function applyDiscount(percent) {
+      discountPercent = percent;
+      document.getElementById("discountPopup").style.display = "none";
+      updateOverlay(false);
+      updateSummary();
+    }
+
+    function addToOrder(item) {
+      const name = item["name"];
+      const price = Number(item["price"]);
+      if (!order[name]) {
+        order[name] = { price, quantity: 1 };
+      } else {
+        order[name].quantity++;
+      }
+      updateSummary();
+    }
+
+    function updateSummary() {
+      const summary = document.getElementById("orderSummary");
+      const items = document.getElementById("orderItems");
+      const total = document.getElementById("totalSummary");
+      items.innerHTML = "";
+
+      let subtotal = 0;
+      for (const name in order) {
+        const item = order[name];
+        subtotal += item.price * item.quantity;
+
+        const row = document.createElement("div");
+        row.className = "order-item";
+        row.innerHTML = `
+          <div>${name}</div>
+          <div class="controls">
+            <button onclick="changeQty('${name}', -1)">-</button>
+            <span>${item.quantity}</span>
+            <button onclick="changeQty('${name}', 1)">+</button>
+            <button onclick="removeItem('${name}')">🗑️</button>
+          </div>
+        `;
+        items.appendChild(row);
+      }
+
+      const discount = subtotal * (discountPercent / 100);
+      const vat = (subtotal - discount) * 0.07;
+      const net = subtotal - discount + vat;
+
+      total.innerHTML = `
+        ยอดรวม: ${subtotal.toFixed(2)} ฿<br>
+        ส่วนลด (${discountPercent}%): ${discount.toFixed(2)} ฿<br>
+        ภาษี (7%): ${vat.toFixed(2)} ฿<br>
+        <strong>ราคาสุทธิ: ${net.toFixed(2)} ฿</strong>
+      `;
+
+      summary.style.display = "block";
+    }
+    function removeDiscount() {
+      discountPercent = 0;
+      updateSummary();
+    }
+      function changeQty(name, change) {
+        if (order[name]) {
+          order[name].quantity += change;
+          if (order[name].quantity <= 0) {
+            delete order[name];
+          }
+          updateSummary();
+        }
+      }
+
+    function removeItem(name) {
+      delete order[name];
+      updateSummary();
+    }
+
+    function submitOrder() {
+      const duration = Math.floor((new Date() - startTime) / 1000);
+      alert(`สั่งซื้อเรียบร้อย! ใช้เวลา: ${duration} วินาที`);
+      order = {};
+      discountPercent = 0;
+      updateSummary();
+    }
+
+    function cancelOrder() {
+      if (confirm("ต้องการยกเลิกการสั่งซื้อใช่ไหม?")) {
+        order = {};
+        discountPercent = 0;
+        updateSummary();
+      }
+    }
+
+    function goHome() {
+      window.location.href = "index.html";
+    }
+
+    function goBack() {
+      window.history.back();
+    }
+
+    // โหลดเมนูจาก Google Sheet
+    fetch("https://script.google.com/macros/s/AKfycbwvYTBu1lZ-IukUtsg2ylzALbEEoYARxjgyWh7VmTDP9lTXhs6Axv7uNcRIE3DCGjaQ/exec")
+      .then(res => res.json())
+      .then(data => {
+        const grid = document.getElementById("menuGrid");
+        grid.innerHTML = "";
+        data.forEach((item, index) => {
+          const div = document.createElement("div");
+          div.className = "menu-item";
+          div.innerHTML = `
+            <label for="imgUpload${index}">
+              <div class="image-placeholder" id="imgPreview${index}">[เลือกรูป]</div>
+            </label>
+            <input type="file" id="imgUpload${index}" accept="image/*" style="display: none;" />
+            <div>${item["name"]}</div>
+            <div>${item["price"]} บาท</div>
+          `;
+          const input = div.querySelector(`#imgUpload${index}`);
+          input.addEventListener("change", function () {
+            const file = this.files[0];
+            if (file) {
+              const reader = new FileReader();
+              reader.onload = function (e) {
+                const imgDiv = div.querySelector(`#imgPreview${index}`);
+                imgDiv.innerHTML = `<img src="${e.target.result}" style="width:100%; height:100px; object-fit:cover; border-radius:8px;" />`;
+              };
+              reader.readAsDataURL(file);
+            }
+          });
+          div.onclick = () => addToOrder(item);
+          grid.appendChild(div);
+        });
+      });
+
+    // กลับหน้าแรกอัตโนมัติถ้าไม่ขยับ 5 นาที
+    let inactivityTimer = setTimeout(goHome, 5 * 60 * 1000);
+    document.body.addEventListener("click", () => {
+      clearTimeout(inactivityTimer);
+      inactivityTimer = setTimeout(goHome, 5 * 60 * 1000);
+    });
+  </script>
+</body>
+</html>
